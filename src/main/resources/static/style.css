@@ -1,0 +1,24 @@
+#anotherdiv
+{
+    border:2px solid green; 
+}
+
+.box
+{
+    border: 1px solid red; 
+    width:100px; 
+    height:100px;
+    background: grey;
+}
+
+.container
+{
+    border: 1px solid black;
+    width: 500px;
+    height: 500px;
+}
+
+div
+{
+    border: dotted;
+}
