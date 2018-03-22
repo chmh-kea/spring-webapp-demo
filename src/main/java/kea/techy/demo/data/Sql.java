@@ -37,9 +37,28 @@ public class Sql
         }
     }
 
+    private static Connection getRemoteConnection() throws SQLException
+    {
+        if (System.getProperty("RDS_HOSTNAME") != null)
+        {
+                String dbName = System.getProperty("RDS_DB_NAME");
+                String userName = System.getProperty("RDS_USERNAME");
+                String password = System.getProperty("RDS_PASSWORD");
+                String hostname = System.getProperty("RDS_HOSTNAME");
+                String port = System.getProperty("RDS_PORT");
+                String jdbcUrl = "jdbc:myql://" + hostname + ":" + port + "/" + dbName + "?user=" + userName + "&password=" + password;
+               // logger.trace("Getting remote connection with connection string from environment variables.");
+                Connection con = DriverManager.getConnection(url);
+                //logger.info("Remote connection successful.");
+                return con;
+        }
+        return null;
+    }
+
     private Connection getConn() throws SQLException
     {
-        return DriverManager.getConnection(url, user, pass);
+        return getRemoteConnection();
+        //return DriverManager.getConnection(url, user, pass);
     }
 
 //    private ResultSet getUnsafe(Connection conn, String query) throws SQLException
