@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<ul>
+    <li style="margin:5px 0px; border-bottom:solid 1px;" th:each="user : ${users}">
+        <span th:text="'Username: ' + ${user.username}">Default</span>
+        <br/>
+        <span th:text="'Actual Name: ' + ${user.firstname} + ' ' + ${user.lastname}">Default</span>
+    </li>
+    <br/>
+
+</ul>
+</body>
+</html>

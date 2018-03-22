@@ -25,7 +25,7 @@ public class HomeController
 
     // GET
     // localhost:8080/user/1
-    @GetMapping("/user/{id}")
+    @GetMapping("/greetingtwo/{id}")
     public String user(@PathVariable("id") int id, Model model)
     {
         model.addAttribute("name", id);
