@@ -20,13 +20,13 @@ public class UserController
         {
             List<User> users = Sql.getInstance().getUsers();
             model.addAttribute("users", users);
-            return "users";
+            //return "users";
         }
-        catch (SQLException ex)
+        catch (Exception ex)
         {
             model.addAttribute("error", ex.getMessage());
         }
-        model.addAttribute("error", "what?");
+        //model.addAttribute("error", "No Errors");
         return "users";
     }
 }

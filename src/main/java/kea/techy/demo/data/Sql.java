@@ -1,7 +1,5 @@
 package kea.techy.demo.data;
 
-import kea.techy.demo.data.Crypto;
-
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -9,56 +7,70 @@ import java.util.List;
 
 public class Sql
 {
-    public static final String URL = "jdbc:mysql://%s/%s?autoReconnect=true&useSSL=false";
+    public static final String CONN_STRING = "jdbc:mysql://%s:%s/%s?autoReconnect=true&useSSL=false&user=%s&password=%s";
     private String dbname = "tech";
-    public static String host = "localhost:4200";
+    public static String host = "localhost";
+    public static String port = "4200";
     public static String user = "root";
     public static String pass = "pass1234";
     private static String url;
 
     private static Sql instance;
-    public static Sql getInstance()
+    public static Sql getInstance() throws SQLException, ClassNotFoundException
     {
         if(instance == null)
             instance = new Sql();
         return instance;
     }
 
-    private Sql()
+    private Sql() throws SQLException, ClassNotFoundException
     {
-        url = String.format(URL, host, dbname);
-        try
-        {
-            Class.forName("com.mysql.jdbc.Driver");
-        } catch (ClassNotFoundException ex)
-        {
-            ex.printStackTrace();
-            //out.print(ex.getMessage());
-        }
-    }
-
-    private static Connection getRemoteConnection() throws SQLException
-    {
+        // Get db config from RDS ENVIRONMENT VARIABLES
         if (System.getProperty("RDS_HOSTNAME") != null)
         {
-                String dbName = System.getProperty("RDS_DB_NAME");
-                String userName = System.getProperty("RDS_USERNAME");
-                String password = System.getProperty("RDS_PASSWORD");
-                String hostname = System.getProperty("RDS_HOSTNAME");
-                String port = System.getProperty("RDS_PORT");
-                String jdbcUrl = "jdbc:myql://" + hostname + ":" + port + "/" + dbName + "?user=" + userName + "&password=" + password;
-               // logger.trace("Getting remote connection with connection string from environment variables.");
-                Connection con = DriverManager.getConnection(url);
-                //logger.info("Remote connection successful.");
-                return con;
+            String dbName = System.getProperty("RDS_DB_NAME");
+            String userName = System.getProperty("RDS_USERNAME");
+            String password = System.getProperty("RDS_PASSWORD");
+            String hostname = System.getProperty("RDS_HOSTNAME");
+            String port = System.getProperty("RDS_PORT");
+            url = String.format(CONN_STRING, hostname, port, dbName, userName, password);
+            //url = "jdbc:mysql://" + hostname + ":" + port + "/" + dbName + "?user=" + userName + "&password=" + password;
         }
-        return null;
+        // Get hardcoded local config values
+        else
+            url = String.format(CONN_STRING, host, port, dbname, user, pass);
+//        try
+//        {
+            Class.forName("com.mysql.jdbc.Driver");
+//        } catch (ClassNotFoundException ex)
+//        {
+//            ex.printStackTrace();
+//            //out.print(ex.getMessage());
+//        }
     }
+
+//    private static Connection getRemoteConnection() throws SQLException
+//    {
+//        if (System.getProperty("RDS_HOSTNAME") != null)
+//        {
+//                String dbName = System.getProperty("RDS_DB_NAME");
+//                String userName = System.getProperty("RDS_USERNAME");
+//                String password = System.getProperty("RDS_PASSWORD");
+//                String hostname = System.getProperty("RDS_HOSTNAME");
+//                String port = System.getProperty("RDS_PORT");
+//                String jdbcUrl = "jdbc:mysql://" + hostname + ":" + port + "/" + dbName + "?user=" + userName + "&password=" + password;
+//               // logger.trace("Getting remote connection with connection string from environment variables.");
+//                Connection con = DriverManager.getConnection(url);
+//                //logger.info("Remote connection successful.");
+//                return con;
+//        }
+//        return null;
+//    }
 
     private Connection getConn() throws SQLException
     {
-        return getRemoteConnection();
-        //return DriverManager.getConnection(url, user, pass);
+        //return getRemoteConnection();
+        return DriverManager.getConnection(url);
     }
 
 //    private ResultSet getUnsafe(Connection conn, String query) throws SQLException
