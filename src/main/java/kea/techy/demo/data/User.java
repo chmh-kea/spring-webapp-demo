@@ -16,6 +16,12 @@ public class User
 
     }
 
+    public User(String fname, String lname)
+    {
+        firstname = fname;
+        lastname = lname;
+    }
+
     public User(ResultSet result) throws SQLException
     {
         int i = 1;
