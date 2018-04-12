@@ -7,15 +7,13 @@ import java.util.List;
 
 public class Sql
 {
-    public static final String CONN_STRING = "jdbc:mysql://%s:%s/%s?autoReconnect=true&useSSL=false&user=%s&password=%s";
-    private String dbname = "tech";
-    public static String host = "localhost";
-    public static String port = "4200";
-    public static String user = "root";
-    public static String pass = "pass1234";
-    private static String url;
+    private final String CONN_STRING = "jdbc:mysql://%s:%s/%s?autoReconnect=true&useSSL=false&user=%s&password=%s";
+
+    private String dbname;
+    private String connString;
 
     private static Sql instance;
+
     public static Sql getInstance() throws SQLException, ClassNotFoundException
     {
         if(instance == null)
@@ -25,52 +23,43 @@ public class Sql
 
     private Sql() throws SQLException, ClassNotFoundException
     {
-        // Get db config from RDS ENVIRONMENT VARIABLES
+        // AWS
+        // Get db config from RDS ENVIRONMENT VARIABLES for AWS
         if (System.getProperty("RDS_HOSTNAME") != null)
         {
-            String dbName = System.getProperty("RDS_DB_NAME");
+            dbname = System.getProperty("RDS_DB_NAME");
+
             String userName = System.getProperty("RDS_USERNAME");
             String password = System.getProperty("RDS_PASSWORD");
             String hostname = System.getProperty("RDS_HOSTNAME");
             String port = System.getProperty("RDS_PORT");
-            url = String.format(CONN_STRING, hostname, port, dbName, userName, password);
-            //url = "jdbc:mysql://" + hostname + ":" + port + "/" + dbName + "?user=" + userName + "&password=" + password;
+
+            connString = String.format(CONN_STRING, hostname, port, dbname, userName, password);
+            //connString = "jdbc:mysql://" + hostname + ":" + port + "/" + dbName + "?user=" + userName + "&password=" + password;
         }
+        // LOCAL
         // Get hardcoded local config values
         else
-            url = String.format(CONN_STRING, host, port, dbname, user, pass);
-//        try
-//        {
+        {
+            dbname = "tech";
+            connString = String.format(CONN_STRING, "localhost", "4200", dbname, "root", "pass1234");
+        }
             Class.forName("com.mysql.jdbc.Driver");
-//        } catch (ClassNotFoundException ex)
-//        {
-//            ex.printStackTrace();
-//            //out.print(ex.getMessage());
-//        }
     }
-
-//    private static Connection getRemoteConnection() throws SQLException
+//
+//    private String initializeDatabase() throws SQLException
 //    {
-//        if (System.getProperty("RDS_HOSTNAME") != null)
+//        try(Connection conn = getConn())
 //        {
-//                String dbName = System.getProperty("RDS_DB_NAME");
-//                String userName = System.getProperty("RDS_USERNAME");
-//                String password = System.getProperty("RDS_PASSWORD");
-//                String hostname = System.getProperty("RDS_HOSTNAME");
-//                String port = System.getProperty("RDS_PORT");
-//                String jdbcUrl = "jdbc:mysql://" + hostname + ":" + port + "/" + dbName + "?user=" + userName + "&password=" + password;
-//               // logger.trace("Getting remote connection with connection string from environment variables.");
-//                Connection con = DriverManager.getConnection(url);
-//                //logger.info("Remote connection successful.");
-//                return con;
+//            Statement statement = conn.createStatement();
+//            ResultSet result = statement.executeQuery()
 //        }
-//        return null;
+//
 //    }
 
     private Connection getConn() throws SQLException
     {
-        //return getRemoteConnection();
-        return DriverManager.getConnection(url);
+        return DriverManager.getConnection(connString);
     }
 
 //    private ResultSet getUnsafe(Connection conn, String query) throws SQLException
@@ -96,7 +85,7 @@ public class Sql
         try(Connection conn = getConn())
         {
             Statement statement = conn.createStatement();
-            result = statement.executeQuery("SELECT users.id, users.firstname, users.lastname, users.username FROM tech.users");
+            result = statement.executeQuery(String.format("SELECT users.id, users.firstname, users.lastname, users.username FROM %s.users", dbname));
 
             while(result.next())
             {
@@ -119,18 +108,20 @@ public class Sql
 
         try(Connection conn = getConn())
         {
+            // Sanitized SQL and NOT hashed password
             if (safe && !hash)
             {
-                PreparedStatement preparedStatement = conn.prepareStatement("SELECT * FROM tech.users WHERE username=? AND password=?");
+                PreparedStatement preparedStatement = conn.prepareStatement(String.format("SELECT * FROM %s.users WHERE username=? AND password=?", dbname));
                 preparedStatement.setString(1, username);
                 preparedStatement.setString(2, password);
                 result = preparedStatement.executeQuery();
             }
+            // Sanitized SQL and Hashed passwords
             else if (safe && hash)
             {
                 byte[] salt = null;
 
-                PreparedStatement getSalt = conn.prepareStatement("SELECT salt FROM tech.users WHERE username=?");
+                PreparedStatement getSalt = conn.prepareStatement(String.format("SELECT salt FROM %s.users WHERE username=?", dbname));
                 getSalt.setString(1,username);
                 result = getSalt.executeQuery();
 
@@ -139,7 +130,7 @@ public class Sql
 
                 if (salt != null)
                 {
-                    PreparedStatement getUser = conn.prepareStatement("SELECT * FROM tech.users WHERE username=? AND password=?");
+                    PreparedStatement getUser = conn.prepareStatement(String.format("SELECT * FROM %s.users WHERE username=? AND password=?",dbname));
                     getUser.setString(1,username);
                     getUser.setString(2,Base64.getEncoder().encodeToString(Crypto.hashPassword(password.toCharArray(), salt)));
                     result = getUser.executeQuery();
@@ -148,10 +139,11 @@ public class Sql
                     result = null;
                     //throw new SQLException("No user or salt found");
             }
+            // NOT Sanitized and NOT Hashed
             else
             {
                 Statement statement = conn.createStatement();
-                result = statement.executeQuery(String.format("SELECT * FROM tech.users WHERE username='%s' AND password='%s'", username, password));
+                result = statement.executeQuery(String.format("SELECT * FROM %s.users WHERE username='%s' AND password='%s'", dbname, username, password));
                 //result = getUnsafe(conn, String.format(query, username, password));
             }
 
@@ -167,7 +159,7 @@ public class Sql
 
         String password = user.getPassword();
         byte[] salt = null;
-        String query = "INSERT INTO tech.users (firstname, lastname, username, password, salt) VALUES (?, ?, ?,";
+        String query = String.format("INSERT INTO %s.users (firstname, lastname, username, password, salt) VALUES (?, ?, ?,", dbname);
 
 
         if (hash)
